@@ -12,6 +12,7 @@ final_aero/
 ├── docs/
 │   └── Veridian.pdf
 ├── src/
+|   ├── porkchop.py
 │   ├── veridian_structured.py
 │   └── veridian_animation.py
 ├── outputs/

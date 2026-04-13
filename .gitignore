@@ -1,0 +1,14 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Editor lock/temp files
+.~lock.*
+
+# OS/editor noise
+.DS_Store
+
+# Generated outputs
+outputs/*.csv
+outputs/animations/*.mp4
+outputs/animations/*.gif

@@ -362,16 +362,17 @@ def evaluate_departure(payload):
             rp = R_VENTUS + altitude
             if rp < 67000.0:          # enforce minimum periapsis distance from Ventus centre
                 continue
+
+            v_inf_in_mag = np.linalg.norm(v_inf_in)
+            if v_inf_in_mag == 0.0:
+                continue
+
+            arg = 1.0 / (1.0 + (rp * v_inf_in_mag**2) / MU_VENTUS)
+            if abs(arg) > 1.0:
+                continue
+            delta_max = 2.0 * np.arcsin(arg)
+
             for sign in (+1, -1):
-                ga = gravity_assist(v_inf_in, v2, rp, MU_VENTUS, sign=sign)
-                if ga is None:
-                    continue
-                v_after, _ = ga
-
-                # Keep branches that increase heliocentric energy for outer transfer
-                if np.linalg.norm(v_after) <= incoming_helio_speed:
-                    continue
-
                 for (
                     tof2,
                     t3,
@@ -383,7 +384,23 @@ def evaluate_departure(payload):
                     v_inf_post_vec,
                     position_error,
                 ) in leg2_options:
-                    dv_corr = np.linalg.norm(v1_leg2 - v_after)
+
+                    v_inf_out_req = v1_leg2 - v2
+                    v_inf_out_req_mag = np.linalg.norm(v_inf_out_req)
+                    if v_inf_out_req_mag == 0.0:
+                        continue
+
+                    cos_delta_req = np.dot(v_inf_in, v_inf_out_req) / (v_inf_in_mag * v_inf_out_req_mag)
+                    cos_delta_req = np.clip(cos_delta_req, -1.0, 1.0)
+                    delta_req = np.arccos(cos_delta_req)
+
+                    if delta_req <= delta_max:
+                        dv_corr = 0.0
+                        v_after = v1_leg2
+                    else:
+                        dv_corr = v_inf_in_mag * (delta_req - delta_max)
+                        v_after = v1_leg2
+
                     total_dv = dv_dep + dv_corr + dv_match
                     if total_dv > max_total_dv:
                         continue

@@ -322,7 +322,8 @@ def evaluate_departure(payload):
             v1_leg2, v2_leg2 = leg2
 
             # In this patched-conic setup, Lambert endpoint matches planet position
-            position_error = np.linalg.norm(r3 - r3)
+            r3_propagated = propagate_heliocentric_segment(r2, v1_leg2, np.array([float(tof2)]))[0]
+            position_error = np.linalg.norm(r3_propagated - r3)
             if position_error > POSITION_TOL_KM:
                 continue
 
@@ -359,6 +360,8 @@ def evaluate_departure(payload):
 
         for altitude in flyby_altitudes:
             rp = R_VENTUS + altitude
+            if rp < 67000.0:          # enforce minimum periapsis distance from Ventus centre
+                continue
             for sign in (+1, -1):
                 ga = gravity_assist(v_inf_in, v2, rp, MU_VENTUS, sign=sign)
                 if ga is None:
@@ -563,6 +566,19 @@ def main():
     print(f"Terminal DSM ΔV     : {best_global.dv_match:.3f} km/s")
     print(f"Arrival ΔV (scored) : {best_global.dv_match:.3f} km/s")
     print(f"Total ΔV (scored)   : {best_global.total_dv:.3f} km/s")
+    
+    G0 = 9.80665e-3   # km/s²
+    M0 = 2500.0        # kg
+    ISP = 300.0        # s
+
+    m_final = M0 * np.exp(-best_global.total_dv / (ISP * G0))
+    propellant_used = M0 - m_final
+
+    print(f"\n--- Mass budget ---")
+    print(f"Initial mass        : {M0:.1f} kg")
+    print(f"Total ΔV            : {best_global.total_dv:.3f} km/s")
+    print(f"Propellant used     : {propellant_used:.1f} kg")
+    print(f"Final mass          : {m_final:.1f} kg")
 
     print("\n--- Ventus flyby velocities (heliocentric) ---")
     print(
